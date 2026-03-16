@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>云盘聚合下载控制台</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: radial-gradient(circle at 20% 20%, #2b2a4c, #1b1a2b 60%);
+            --card-bg: rgba(16, 16, 28, 0.85);
+            --accent: #6dd3ff;
+            --accent-strong: #4ea4ff;
+            --muted: #8f92b2;
+            --success: #4ad295;
+            --error: #ff6b81;
+            --warning: #fac748;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Space Grotesk', 'Noto Sans SC', sans-serif;
+            background: var(--bg);
+            color: #f7f8ff;
+            min-height: 100vh;
+            padding: 2rem 1rem 3rem;
+        }
+        .page { max-width: 1100px; margin: 0 auto; }
+        .hero {
+            display: flex;
+            flex-direction: column;
+            gap: .6rem;
+            padding: 2rem;
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(77,136,255,0.25), rgba(56,189,248,0.15));
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 25px 40px rgba(15,14,36,0.4);
+        }
+        .hero h1 { margin: 0; font-size: 2.1rem; font-weight: 600; }
+        .hero p { margin: 0; color: var(--muted); }
+        .primary-nav {
+            margin-top: 1.5rem;
+            display: inline-flex;
+            gap: .6rem;
+            background: rgba(255,255,255,0.05);
+            padding: .35rem;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .primary-tab {
+            border: none;
+            border-radius: 999px;
+            padding: 0.6rem 1.4rem;
+            background: transparent;
+            color: var(--muted);
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .primary-tab.active {
+            background: rgba(78,164,255,0.25);
+            color: #fff;
+            box-shadow: 0 12px 25px rgba(78,164,255,0.25);
+        }
+        .primary-pane { display: none; }
+        .primary-pane.active { display: block; }
+        .card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 15px 35px rgba(6,10,40,0.6);
+        }
+        .search-card form { display: flex; flex-wrap: wrap; gap: .8rem; }
+        .search-card input {
+            flex: 1;
+            min-width: 220px;
+            border-radius: 14px;
+            padding: 0.95rem 1.1rem;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(4,7,22,0.5);
+            color: #fff;
+            font-size: 1rem;
+        }
+        .search-card button {
+            border: none;
+            border-radius: 14px;
+            padding: 0.95rem 1.6rem;
+            background: var(--accent-strong);
+            color: #050714;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+        .search-card button:hover { transform: translateY(-1px); box-shadow: 0 12px 18px rgba(78,164,255,.35); }
+        .status-banner {
+            margin-top: 1rem;
+            padding: .9rem 1.2rem;
+            border-radius: 12px;
+            font-size: .95rem;
+            display: none;
+        }
+        .status-banner.show { display: block; }
+        .status-banner.success { background: rgba(74,210,149,0.15); border: 1px solid rgba(74,210,149,0.4); color: #9ff7cf; }
+        .status-banner.error { background: rgba(255,107,129,0.12); border: 1px solid rgba(255,107,129,0.4); color: #ffc7d0; }
+        .results-card h2 { margin-top: 0; }
+        .tabs { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .tab {
+            padding: .45rem 1rem;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.08);
+            cursor: pointer;
+            font-size: .9rem;
+            color: var(--muted);
+        }
+        .tab.active { background: rgba(78,164,255,0.18); color: #fff; border-color: rgba(78,164,255,0.5); }
+        .result-list { display: flex; flex-direction: column; gap: 1rem; }
+        .result-item {
+            padding: 1rem 1.2rem;
+            border-radius: 16px;
+            background: rgba(7, 10, 28, 0.55);
+            border: 1px solid rgba(255,255,255,0.04);
+            display: flex;
+            flex-direction: column;
+            gap: .6rem;
+        }
+        .item-head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+        .item-head h3 { margin: 0; font-size: 1.05rem; }
+        .item-head small { color: var(--muted); }
+        .item-meta { font-size: .85rem; color: var(--muted); word-break: break-all; }
+        .item-actions { display: flex; flex-wrap: wrap; gap: .6rem; }
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn.download { background: var(--success); color: #05140f; }
+        .btn.secondary { background: rgba(255,255,255,0.08); color: #f7f8ff; }
+        .status-card { margin-top: 1.5rem; }
+        .panel-tabs { display: inline-flex; gap: .5rem; border-radius: 999px; background: rgba(255,255,255,0.04); padding: .2rem; }
+        .panel-tab {
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            padding: .45rem 1rem;
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .panel-tab.active { background: rgba(78,164,255,0.25); color: #fff; }
+        .panel-section { display: none; margin-top: 1.2rem; }
+        .panel-section.active { display: block; }
+        .panel-head { display:flex; justify-content:space-between; align-items:center; gap:1rem; }
+        .panel-body { display:flex; flex-direction:column; gap:1rem; }
+        .task-list, .file-list { display: flex; flex-direction: column; gap: .9rem; max-height: 320px; overflow: auto; }
+        .task-item, .file-item {
+            padding: .85rem 1rem;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+        .task-item h4, .file-item h4 { margin: 0 0 .3rem; font-size: 1rem; }
+        .task-item small, .file-item small { color: var(--muted); display: block; }
+        .task-item a.capture-link { color: var(--accent); font-size: .85rem; text-decoration: underline; display: inline-block; margin-top: .2rem; }
+        .chip { display: inline-block; padding: .2rem .65rem; border-radius: 999px; font-size: .78rem; margin-top: .4rem; }
+        .chip.queued { background: rgba(250,199,72,0.15); color: var(--warning); }
+        .chip.transferring, .chip.downloading, .chip.preparing { background: rgba(78,164,255,0.18); color: #9bcaff; }
+        .chip.completed { background: rgba(74,210,149,0.15); color: var(--success); }
+        .chip.error { background: rgba(255,107,129,0.18); color: var(--error); }
+        @media (max-width: 720px) {
+            .search-card form { flex-direction: column; }
+            .item-head { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <section class="hero">
+            <h1>网盘搜索 · 一键落地</h1>
+            <p>连接 8081 PanSou 搜索中心，直接在 8082 对百度网盘 / 阿里云盘 / 夸克网盘资源发起一键下载，落盘目录为 <code>/mnt/shipin</code>。</p>
+        </section>
+
+        <div class="primary-nav">
+            <button class="primary-tab active" id="primarySearchTab" onclick="switchPrimaryPane('search')">资源搜索</button>
+            <button class="primary-tab" id="primaryStatusTab" onclick="switchPrimaryPane('status')">下载状态</button>
+        </div>
+
+        <div id="searchPane" class="primary-pane active">
+            <section class="card search-card" style="margin-top:1.5rem;">
+                <form id="searchForm">
+                    <input type="text" id="kw" placeholder="搜索关键字，如：黑神话 电影 或 教程合集" autocomplete="off" required>
+                    <button type="submit">开始搜索</button>
+                </form>
+                <div id="statusBanner" class="status-banner"></div>
+            </section>
+
+            <section class="card results-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
+                    <h2 id="resultTitle">搜索结果</h2>
+                    <span id="resultCount" style="color:var(--muted);"></span>
+                </div>
+                <div class="tabs" id="resultTabs"></div>
+                <div id="resultList" class="result-list"></div>
+            </section>
+        </div>
+
+        <div id="statusPane" class="primary-pane">
+        <section class="card status-card">
+            <div class="panel-tabs">
+                <button class="panel-tab active" id="tabTasks" onclick="switchStatusPanel('tasks')">下载任务</button>
+                <button class="panel-tab" id="tabFiles" onclick="switchStatusPanel('files')">本机资源</button>
+            </div>
+            <div class="panel-section active" id="tasksPanel">
+                <div class="panel-head">
+                    <h3 style="margin:0;">下载任务</h3>
+                    <button class="btn secondary" style="padding:.45rem 1rem;" onclick="loadTasks(true)">刷新</button>
+                </div>
+                <div id="taskList" class="task-list"></div>
+            </div>
+            <div class="panel-section" id="filesPanel">
+                <div class="panel-head">
+                    <h3 style="margin:0;">/mnt/shipin</h3>
+                    <button class="btn secondary" style="padding:.45rem 1rem;" onclick="loadFiles(true)">刷新</button>
+                </div>
+                <div id="fileList" class="file-list"></div>
+            </div>
+        </section>
+        </div>
+    </div>
+
+    <script>
+        const providerLabels = {
+            quark: '夸克网盘',
+            baidu: '百度网盘',
+            aliyun: '阿里云盘',
+            xunlei: '迅雷云盘',
+            uc: 'UC 网盘',
+            mobile: '移动云盘'
+        };
+
+        const state = {
+            raw: {},
+            activeType: 'quark',
+            statusPanel: 'tasks',
+            primaryPane: 'search'
+        };
+
+        document.getElementById('searchForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            doSearch();
+        });
+
+        async function doSearch() {
+            const kw = document.getElementById('kw').value.trim();
+            if(!kw) return;
+            showBanner('正在向 PanSou 请求数据…', 'neutral');
+            setResultsMessage('正在搜索…');
+            try {
+                const res = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ kw })
+                });
+                const data = await res.json();
+                if(res.ok && data.merged_by_type) {
+                    state.raw = data.merged_by_type;
+                    const total = data.total || 0;
+                    document.getElementById('resultCount').textContent = `共 ${total} 条结果`;
+                    const availableTypes = Object.keys(state.raw).filter(type => state.raw[type]?.length);
+                    state.activeType = pickPreferredType(availableTypes);
+                    renderTabs();
+                    renderResults();
+                    showBanner(`搜索完成，选择链接即可操作。`, 'success');
+                } else {
+                    state.raw = {};
+                    renderTabs();
+                    setResultsMessage(data.error || '未找到可用的搜索结果');
+                    showBanner(data.error || '没有结果', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                state.raw = {};
+                renderTabs();
+                setResultsMessage('请求失败，请稍后重试');
+                showBanner('请求 8081 服务失败：' + err.message, 'error');
+            }
+        }
+
+        function pickPreferredType(types = []) {
+            if(!types.length) return 'quark';
+            const priority = ['quark', 'baidu', 'aliyun', 'xunlei', 'uc', 'mobile'];
+            for(const key of priority) {
+                if(types.includes(key)) {
+                    return key;
+                }
+            }
+            return types[0];
+        }
+
+        function renderTabs() {
+            const tabs = document.getElementById('resultTabs');
+            const types = Object.keys(providerLabels);
+            tabs.innerHTML = types.map(type => {
+                const active = state.activeType === type;
+                return `<div class="tab ${active ? 'active' : ''}" onclick="switchType('${type}')">${providerLabels[type] || type}</div>`;
+            }).join('');
+        }
+
+        function switchType(type) {
+            state.activeType = type;
+            renderTabs();
+            renderResults();
+        }
+
+        function setResultsMessage(text) {
+            document.getElementById('resultList').innerHTML = `<p style="color:var(--muted);text-align:center;">${text}</p>`;
+        }
+
+        function renderResults() {
+            const list = document.getElementById('resultList');
+            const items = state.raw[state.activeType] || [];
+            if(!items.length) {
+                setResultsMessage('该网盘暂无结果');
+                return;
+            }
+            list.innerHTML = items.map((item, idx) => buildItem(item, idx)).join('');
+        }
+
+        function buildItem(item, idx) {
+            const note = item.note || '未命名资源';
+            const url = item.url || '';
+            const pwd = item.password || '';
+            const dt = item.datetime ? new Date(item.datetime).toLocaleString() : '时间未知';
+            const providerKey = state.activeType;
+            const provider = providerLabels[providerKey] || providerKey;
+            const canDownload = ['baidu', 'aliyun', 'quark'].includes(providerKey);
+            const button = canDownload
+                ? `<button class="btn download" onclick="downloadItem('${providerKey}', ${idx})">一键下载</button>`
+                : `<button class="btn secondary" onclick="window.open('${url}','_blank')">访问链接</button>`;
+            return `<div class="result-item">
+                <div class="item-head">
+                    <div>
+                        <h3>${note}</h3>
+                        <small>${provider} · ${dt}</small>
+                    </div>
+                    ${button}
+                </div>
+                <div class="item-meta">链接：${url || '无'}</div>
+                <div class="item-meta">提取码：${pwd || '无'}</div>
+            </div>`;
+        }
+
+        async function downloadItem(provider, idx) {
+            const items = state.raw[provider] || [];
+            const target = items[idx];
+            if(!target) return;
+            showBanner('已提交任务，稍后刷新任务列表即可查看进度。', 'neutral');
+            try {
+                const res = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: target.url,
+                        password: target.password,
+                        provider
+                    })
+                });
+                const data = await res.json();
+                if(res.ok && data.status === 'ok') {
+                    showBanner(`任务 ${data.task_id} 已创建，正在转存…`, 'success');
+                    loadTasks(true);
+                } else {
+                    throw new Error(data.error || '提交失败');
+                }
+            } catch (err) {
+                showBanner(err.message, 'error');
+            }
+        }
+
+        async function loadTasks(manual = false) {
+            try {
+                const res = await fetch('/api/tasks');
+                const data = await res.json();
+                const tasks = data.tasks || [];
+                const box = document.getElementById('taskList');
+                if(!tasks.length) {
+                    box.innerHTML = '<p style="color:var(--muted);">暂无下载任务</p>';
+                    return;
+                }
+                box.innerHTML = tasks.slice(0, 8).map(task => {
+                    const status = task.status || 'queued';
+                    const filename = task.filename || '未命名任务';
+                    const progress = task.progress ?? 0;
+                    const message = task.message || '';
+                    const provider = providerLabels[task.provider] || task.provider || '未知来源';
+                    const captchaLink = task.captcha ? `<a class="capture-link" href="/captures/${task.captcha}" target="_blank">查看验证码截图</a>` : '';
+                    const downloadedBytes = task.downloaded_bytes || 0;
+                    const totalBytes = task.total_bytes || 0;
+                    const speed = task.speed_bps || 0;
+                    let transferLine = '';
+                    if(downloadedBytes > 0 || totalBytes > 0) {
+                        const parts = [];
+                        if(downloadedBytes > 0) {
+                            const downloadedText = formatBytes(downloadedBytes);
+                            if(totalBytes > 0) {
+                                parts.push(`已下载：${downloadedText} / ${formatBytes(totalBytes)}`);
+                                const percent = Math.min(downloadedBytes / totalBytes * 100, 100).toFixed(1);
+                                parts.push(`(${percent}%)`);
+                                if(downloadedBytes < totalBytes) {
+                                    parts.push(`剩余 ${formatBytes(totalBytes - downloadedBytes)}`);
+                                }
+                            } else {
+                                parts.push(`已下载：${downloadedText}`);
+                            }
+                        } else if(totalBytes > 0) {
+                            parts.push(`总大小：${formatBytes(totalBytes)}`);
+                        }
+                        if(speed > 1024) {
+                            parts.push(`速度 ${formatBytes(speed)}/s`);
+                        }
+                        if(parts.length) {
+                            transferLine = `<small>${parts.join(' · ')}</small>`;
+                        }
+                    }
+                    return `<div class="task-item">
+                        <h4>${filename}</h4>
+                        <small>来源：${provider}</small>
+                        <small>${message}</small>
+                        ${captchaLink ? `<small>${captchaLink}</small>` : ''}
+                        ${transferLine}
+                        <small>进度：${progress}%</small>
+                        <span class="chip ${status}">${status.toUpperCase()}</span>
+                    </div>`;
+                }).join('');
+                if(manual) {
+                    showBanner('任务列表已刷新', 'success');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadFiles(manual = false) {
+            try {
+                const res = await fetch('/api/files');
+                const data = await res.json();
+                const files = data.files || [];
+                const box = document.getElementById('fileList');
+                if(!files.length) {
+                    box.innerHTML = '<p style="color:var(--muted);">暂未下载文件</p>';
+                    return;
+                }
+                box.innerHTML = files.slice(0, 10).map(file => {
+                    return `<div class="file-item">
+                        <h4>${file.name}</h4>
+                        <small>${file.size} · ${file.modified}</small>
+                    </div>`;
+                }).join('');
+                if(manual) {
+                    showBanner('文件列表已刷新', 'success');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function showBanner(text, type = 'neutral') {
+            const banner = document.getElementById('statusBanner');
+            banner.className = `status-banner show ${type === 'success' ? 'success' : type === 'error' ? 'error' : ''}`;
+            banner.textContent = text;
+            if(type === 'neutral') {
+                banner.style.background = 'rgba(255,255,255,0.05)';
+                banner.style.border = '1px solid rgba(255,255,255,0.1)';
+                banner.style.color = '#fff';
+            } else {
+                banner.style.removeProperty('background');
+                banner.style.removeProperty('border');
+                banner.style.removeProperty('color');
+            }
+        }
+
+        function switchStatusPanel(panel) {
+            if(state.statusPanel === panel) return;
+            state.statusPanel = panel;
+            document.getElementById('tasksPanel').classList.toggle('active', panel === 'tasks');
+            document.getElementById('filesPanel').classList.toggle('active', panel === 'files');
+            document.getElementById('tabTasks').classList.toggle('active', panel === 'tasks');
+            document.getElementById('tabFiles').classList.toggle('active', panel === 'files');
+        }
+
+        function switchPrimaryPane(pane) {
+            if(state.primaryPane === pane) return;
+            state.primaryPane = pane;
+            document.getElementById('searchPane').classList.toggle('active', pane === 'search');
+            document.getElementById('statusPane').classList.toggle('active', pane === 'status');
+            document.getElementById('primarySearchTab').classList.toggle('active', pane === 'search');
+            document.getElementById('primaryStatusTab').classList.toggle('active', pane === 'status');
+        }
+
+        function formatBytes(bytes) {
+            if(bytes === undefined || bytes === null) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            let value = bytes;
+            let index = 0;
+            while(value >= 1024 && index < units.length - 1) {
+                value /= 1024;
+                index++;
+            }
+            const digits = value >= 10 ? 1 : 2;
+            return `${value.toFixed(digits)} ${units[index]}`;
+        }
+
+        loadTasks();
+        loadFiles();
+        setInterval(() => {
+            loadTasks();
+            loadFiles();
+        }, 6000);
+    </script>
+</body>
+</html>

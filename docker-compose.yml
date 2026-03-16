@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+  pansou:
+    image: ghcr.io/fish2018/pansou:latest
+    container_name: pansou
+    restart: unless-stopped
+    environment:
+      - PORT=8888
+    ports:
+      - "${PANSOU_PORT:-8081}:8888"
+
+  alist:
+    image: xhofe/alist:latest
+    container_name: alist
+    restart: unless-stopped
+    environment:
+      - ALIST_ADMIN_PASSWORD=${ALIST_ADMIN_PASSWORD}
+      - TZ=Asia/Shanghai
+    volumes:
+      - ${ALIST_DATA:-./data/alist}:/opt/alist/data
+    ports:
+      - "${ALIST_PORT:-8083}:5244"
+
+  downloader:
+    build:
+      context: ./baidu-download
+    container_name: downloader
+    restart: unless-stopped
+    depends_on:
+      - pansou
+      - alist
+    environment:
+      - SEARCH_API=${SEARCH_API}
+      - BDUSS=${BDUSS}
+      - STOKEN=${STOKEN}
+      - QUARK_COOKIE=${QUARK_COOKIE}
+      - QUARK_TARGET_FOLDER_FID=${QUARK_TARGET_FOLDER_FID}
+      - QUARK_TARGET_FOLDER_PATH=${QUARK_TARGET_FOLDER_PATH}
+      - ALIST_BASE=${ALIST_BASE}
+      - ALIST_USERNAME=${ALIST_USERNAME}
+      - ALIST_PASSWORD=${ALIST_PASSWORD}
+      - ALIST_QUARK_MOUNT=${ALIST_QUARK_MOUNT}
+      - DOWNLOAD_PATH=${DOWNLOAD_PATH}
+      - CAPTURE_DIR=${CAPTURE_DIR}
+      - GLOBAL_HTTP_PROXY=${GLOBAL_HTTP_PROXY}
+      - PLAYWRIGHT_PROXY=${PLAYWRIGHT_PROXY}
+    volumes:
+      - ${SHIPIN_DATA:-./data/shipin}:/downloads
+      - ./baidu-download/captures:/app/captures
+    ports:
+      - "${DOWNLOADER_PORT:-8082}:8082"
