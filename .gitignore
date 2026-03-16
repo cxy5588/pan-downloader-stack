@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+baidu-download/app.log
+baidu-download/app.out
+baidu-download/app.pid
+baidu-download/captures/
+baidu-download/baidu_cookies.json
+baidu-download/captcha_token.txt
+baidu-download/captcha_type.txt
+baidu-download/*.png
+data/
+.env
